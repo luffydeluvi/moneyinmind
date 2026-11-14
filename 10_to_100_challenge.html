@@ -1,0 +1,1074 @@
+<!DOCTYPE html>
+<html lang="en" class="dark">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>$10 to $100 Compounding Trading Challenge</title>
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    colors: {
+                        brand: {
+                            50: '#eff6ff',
+                            500: '#3b82f6',
+                            600: '#2563eb',
+                            700: '#1d4ed8',
+                        },
+                        darkbg: '#0B0F19',
+                        cardbg: '#111827',
+                        cardborder: '#1F2937',
+                        win: '#10B981',
+                        loss: '#EF4444'
+                    },
+                    fontFamily: {
+                        sans: ['Inter', 'sans-serif'],
+                    }
+                }
+            }
+        }
+    </script>
+    <!-- Google Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    <!-- Chart.js -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <!-- FontAwesome Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    
+    <!-- Firebase App & Services (Compat SDK) -->
+    <script src="https://www.gstatic.com/firebasejs/11.6.1/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/11.6.1/firebase-auth-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore-compat.js"></script>
+
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #0B0F19;
+            color: #F3F4F6;
+        }
+        .glass-card {
+            background: rgba(17, 24, 39, 0.85);
+            backdrop-filter: blur(12px);
+            border: 1px solid rgba(255, 255, 255, 0.08);
+        }
+        .glass-card:hover {
+            border-color: rgba(59, 130, 246, 0.3);
+        }
+        /* Custom scrollbar */
+        ::-webkit-scrollbar {
+            width: 6px;
+            height: 6px;
+        }
+        ::-webkit-scrollbar-track {
+            background: #0B0F19;
+        }
+        ::-webkit-scrollbar-thumb {
+            background: #1F2937;
+            border-radius: 3px;
+        }
+        ::-webkit-scrollbar-thumb:hover {
+            background: #374151;
+        }
+    </style>
+</head>
+<body class="min-h-screen flex flex-col justify-between antialiased pb-12 selection:bg-blue-600 selection:text-white">
+
+    <!-- Header Navigation -->
+    <header class="sticky top-0 z-50 glass-card border-b border-gray-800 px-4 lg:px-8 py-3.5 mb-6">
+        <div class="max-w-7xl mx-auto flex justify-between items-center gap-4">
+            <!-- Brand Logo & Title -->
+            <div class="flex items-center gap-3">
+                <div class="w-10 h-10 rounded-xl bg-gradient-to-tr from-blue-600 to-emerald-400 flex items-center justify-center text-white shadow-lg shadow-blue-500/20 shrink-0">
+                    <i class="fa-solid fa-chart-line text-xl"></i>
+                </div>
+                <div>
+                    <h1 class="text-base sm:text-lg font-bold text-white tracking-tight flex items-center gap-2">
+                        $10 <i class="fa-solid fa-arrow-right text-xs text-blue-400"></i> $100 Challenge
+                        <span class="hidden sm:inline-block text-[10px] font-semibold px-2 py-0.5 rounded-full bg-blue-500/10 text-blue-400 border border-blue-500/20">2x Risk Compounding</span>
+                    </h1>
+                    <p class="text-xs text-gray-400 hidden sm:block">Fixed 1:4 Risk-to-Reward • Dynamic Risk Double on Win</p>
+                </div>
+            </div>
+            
+            <!-- Controls & Auth Profile -->
+            <div class="flex items-center gap-2 sm:gap-3">
+                <!-- User Profile Badge -->
+                <div id="userProfile" class="hidden items-center gap-2 bg-gray-900 border border-gray-800 rounded-xl px-2.5 py-1.5">
+                    <img id="userAvatar" src="" alt="Avatar" class="w-6 h-6 rounded-full border border-blue-500/50">
+                    <span id="userName" class="text-xs font-medium text-gray-200 hidden md:inline">User</span>
+                    <button id="logoutBtn" class="text-xs text-gray-400 hover:text-red-400 ml-1 transition" title="Sign Out">
+                        <i class="fa-solid fa-right-from-bracket"></i>
+                    </button>
+                </div>
+
+                <!-- Google Sign-In Button -->
+                <button id="googleLoginBtn" class="px-3 py-2 sm:px-3.5 sm:py-1.5 text-xs font-semibold text-white bg-blue-600 hover:bg-blue-500 active:scale-95 rounded-xl shadow-lg shadow-blue-600/30 transition flex items-center gap-2">
+                    <i class="fa-brands fa-google text-sm"></i> <span class="hidden sm:inline">Sign In with Google</span><span class="sm:hidden">Sign In</span>
+                </button>
+
+                <!-- Quick Action Menu -->
+                <div class="flex items-center gap-1.5">
+                    <button id="addPresetStreakBtn" class="px-2.5 py-1.5 text-xs font-medium text-emerald-400 hover:text-white hover:bg-emerald-500/20 rounded-xl border border-emerald-500/20 transition flex items-center gap-1.5" title="Load Demo Winning Streak">
+                        <i class="fa-solid fa-bolt"></i> <span class="hidden md:inline">Demo Streak</span>
+                    </button>
+                    <button id="resetDataBtn" class="px-2.5 py-1.5 text-xs font-medium text-red-400 hover:text-white hover:bg-red-500/20 rounded-xl border border-red-500/20 transition flex items-center gap-1.5" title="Reset All Data">
+                        <i class="fa-solid fa-rotate-right"></i>
+                    </button>
+                </div>
+            </div>
+        </div>
+    </header>
+
+    <!-- Main Dashboard Body -->
+    <main class="max-w-7xl mx-auto px-4 lg:px-8 w-full flex-grow space-y-6">
+
+        <!-- Top Overview Metrics Grid -->
+        <div class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-3 sm:gap-4">
+            <!-- Current Balance -->
+            <div class="glass-card rounded-2xl p-4 transition-all">
+                <div class="text-xs text-gray-400 font-medium mb-1 flex items-center justify-between">
+                    Balance <i class="fa-solid fa-wallet text-blue-400"></i>
+                </div>
+                <div id="statBalance" class="text-xl sm:text-2xl font-extrabold text-white">$10.00</div>
+                <div id="statBalancePct" class="text-xs text-emerald-400 font-medium mt-1 flex items-center gap-1">
+                    <i class="fa-solid fa-caret-up"></i> +0.0%
+                </div>
+            </div>
+
+            <!-- Next Trade Risk -->
+            <div class="glass-card rounded-2xl p-4 transition-all">
+                <div class="text-xs text-gray-400 font-medium mb-1 flex items-center justify-between">
+                    Next Risk <i class="fa-solid fa-shield-halved text-amber-400"></i>
+                </div>
+                <div id="statNextRisk" class="text-xl sm:text-2xl font-extrabold text-amber-400">$2.00</div>
+                <div id="statNextRiskPct" class="text-xs text-gray-400 mt-1">20.0% of Capital</div>
+            </div>
+
+            <!-- Win Streak -->
+            <div class="glass-card rounded-2xl p-4 transition-all">
+                <div class="text-xs text-gray-400 font-medium mb-1 flex items-center justify-between">
+                    Streak <i class="fa-solid fa-fire text-orange-400"></i>
+                </div>
+                <div id="statStreak" class="text-xl sm:text-2xl font-extrabold text-white">0</div>
+                <div id="statMaxStreak" class="text-xs text-gray-400 mt-1">Best: 0 Wins</div>
+            </div>
+
+            <!-- Total Net PnL -->
+            <div class="glass-card rounded-2xl p-4 transition-all">
+                <div class="text-xs text-gray-400 font-medium mb-1 flex items-center justify-between">
+                    Net P&L <i class="fa-solid fa-chart-pie text-emerald-400"></i>
+                </div>
+                <div id="statPnL" class="text-xl sm:text-2xl font-extrabold text-gray-300">$0.00</div>
+                <div id="statWinRate" class="text-xs text-gray-400 mt-1">Win Rate: 0%</div>
+            </div>
+
+            <!-- Target Progress ($100) -->
+            <div class="glass-card rounded-2xl p-4 transition-all">
+                <div class="text-xs text-gray-400 font-medium mb-1 flex items-center justify-between">
+                    Target ($100) <i class="fa-solid fa-bullseye text-purple-400"></i>
+                </div>
+                <div id="statTargetPct" class="text-xl sm:text-2xl font-extrabold text-purple-400">10.0%</div>
+                <div class="w-full bg-gray-800 h-1.5 rounded-full mt-2 overflow-hidden">
+                    <div id="targetProgressBar" class="bg-gradient-to-r from-blue-500 to-purple-500 h-full w-[10%] transition-all duration-500"></div>
+                </div>
+            </div>
+
+            <!-- Total Trades Count -->
+            <div class="glass-card rounded-2xl p-4 transition-all">
+                <div class="text-xs text-gray-400 font-medium mb-1 flex items-center justify-between">
+                    Total Trades <i class="fa-solid fa-list-check text-cyan-400"></i>
+                </div>
+                <div id="statTotalTrades" class="text-xl sm:text-2xl font-extrabold text-white">0</div>
+                <div id="statWinsLosses" class="text-xs text-gray-400 mt-1">0 W / 0 L</div>
+            </div>
+        </div>
+
+        <!-- Upper Grid: Live Balance Chart & Dynamic Strategy Simulator -->
+        <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+            
+            <!-- Real-time Account Balance Line Chart -->
+            <div class="lg:col-span-2 glass-card rounded-2xl p-4 sm:p-5 flex flex-col justify-between">
+                <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-2 mb-4">
+                    <div>
+                        <h2 class="text-base font-bold text-white flex items-center gap-2">
+                            <i class="fa-solid fa-chart-area text-blue-500"></i> Account Growth Curve
+                        </h2>
+                        <p class="text-xs text-gray-400">Real-time account balance progress updated automatically per trade</p>
+                    </div>
+                    <span class="inline-flex items-center px-2.5 py-1 rounded-lg text-xs font-semibold bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">
+                        Target: $100.00
+                    </span>
+                </div>
+                <div class="h-60 sm:h-72 w-full relative">
+                    <canvas id="balanceChart"></canvas>
+                </div>
+            </div>
+
+            <!-- Strategy Simulation Card & Dynamic Chart -->
+            <div class="glass-card rounded-2xl p-4 sm:p-5 flex flex-col justify-between">
+                <div>
+                    <div class="flex items-center justify-between mb-3">
+                        <h2 class="text-base font-bold text-white flex items-center gap-2">
+                            <i class="fa-solid fa-sliders text-purple-400"></i> Strategy Simulator
+                        </h2>
+                        <span class="text-[10px] text-gray-400 bg-gray-800 px-2 py-0.5 rounded-full border border-gray-700">Dynamic vs Static</span>
+                    </div>
+
+                    <!-- Simulator Chart -->
+                    <div class="h-36 w-full mb-4 relative">
+                        <canvas id="simChart"></canvas>
+                    </div>
+
+                    <!-- Interactive Range Sliders -->
+                    <form id="simForm" class="space-y-3 text-xs">
+                        <div>
+                            <div class="flex justify-between text-gray-300 font-medium mb-1">
+                                <label for="simInitial">Starting Capital ($)</label>
+                                <span id="simInitialVal" class="text-blue-400 font-bold">$10</span>
+                            </div>
+                            <input type="range" id="simInitial" min="5" max="50" step="1" value="10" 
+                                class="w-full h-1.5 bg-gray-800 rounded-lg appearance-none cursor-pointer accent-blue-500">
+                        </div>
+
+                        <div>
+                            <div class="flex justify-between text-gray-300 font-medium mb-1">
+                                <label for="simBaseRisk">Base Risk ($)</label>
+                                <span id="simBaseRiskVal" class="text-amber-400 font-bold">$2</span>
+                            </div>
+                            <input type="range" id="simBaseRisk" min="1" max="10" step="0.5" value="2" 
+                                class="w-full h-1.5 bg-gray-800 rounded-lg appearance-none cursor-pointer accent-amber-500">
+                        </div>
+
+                        <div>
+                            <div class="flex justify-between text-gray-300 font-medium mb-1">
+                                <label for="simRR">Risk-to-Reward Ratio</label>
+                                <span id="simRRVal" class="text-emerald-400 font-bold">1:4</span>
+                            </div>
+                            <input type="range" id="simRR" min="2" max="6" step="0.5" value="4" 
+                                class="w-full h-1.5 bg-gray-800 rounded-lg appearance-none cursor-pointer accent-emerald-500">
+                        </div>
+
+                        <div>
+                            <div class="flex justify-between text-gray-300 font-medium mb-1">
+                                <label for="simStreak">Consecutive Win Streak</label>
+                                <span id="simStreakVal" class="text-purple-400 font-bold">4 Wins</span>
+                            </div>
+                            <input type="range" id="simStreak" min="1" max="6" step="1" value="4" 
+                                class="w-full h-1.5 bg-gray-800 rounded-lg appearance-none cursor-pointer accent-purple-500">
+                        </div>
+                    </form>
+                </div>
+
+                <div class="mt-3 pt-3 border-t border-gray-800 space-y-1.5 text-xs">
+                    <div class="flex justify-between">
+                        <span class="text-gray-400">Compounded Balance (2x Risk):</span>
+                        <span id="simDynamicResult" class="font-bold text-emerald-400">$130.00</span>
+                    </div>
+                    <div class="flex justify-between">
+                        <span class="text-gray-400">Static Balance (Fixed $2 Risk):</span>
+                        <span id="simStaticResult" class="font-bold text-gray-300">$42.00</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Lower Grid: Trade Logger Form & Responsive History List/Table -->
+        <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+
+            <!-- Log New Trade Form -->
+            <div class="glass-card rounded-2xl p-4 sm:p-5">
+                <h2 class="text-base font-bold text-white mb-4 flex items-center gap-2">
+                    <i class="fa-solid fa-square-plus text-emerald-400"></i> Log New Trade
+                </h2>
+
+                <form id="tradeForm" class="space-y-4">
+                    <div class="grid grid-cols-2 gap-3">
+                        <div>
+                            <label class="block text-xs text-gray-400 font-medium mb-1">Asset Pair</label>
+                            <input type="text" id="tradePair" placeholder="EUR/USD" required
+                                class="w-full px-3 py-2 bg-gray-900 border border-gray-800 rounded-xl text-xs text-white placeholder-gray-600 focus:outline-none focus:border-blue-500 transition">
+                        </div>
+                        <div>
+                            <label class="block text-xs text-gray-400 font-medium mb-1">Direction</label>
+                            <select id="tradeDirection" class="w-full px-3 py-2 bg-gray-900 border border-gray-800 rounded-xl text-xs text-white focus:outline-none focus:border-blue-500 transition">
+                                <option value="LONG">Long 🟢</option>
+                                <option value="SHORT">Short 🔴</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <div class="grid grid-cols-2 gap-3">
+                        <div>
+                            <label class="block text-xs text-gray-400 font-medium mb-1">Outcome</label>
+                            <select id="tradeOutcome" class="w-full px-3 py-2 bg-gray-900 border border-gray-800 rounded-xl text-xs font-semibold text-white focus:outline-none focus:border-blue-500 transition">
+                                <option value="WIN" class="text-emerald-400">WIN (1:4 RR) ✅</option>
+                                <option value="LOSS" class="text-red-400">LOSS (-1 Risk) ❌</option>
+                            </select>
+                        </div>
+                        <div>
+                            <label class="block text-xs text-gray-400 font-medium mb-1">Applied Risk ($)</label>
+                            <input type="number" id="tradeRiskAmount" readonly
+                                class="w-full px-3 py-2 bg-gray-800/80 border border-gray-700/80 rounded-xl text-xs text-amber-400 font-bold focus:outline-none cursor-not-allowed">
+                        </div>
+                    </div>
+
+                    <div class="grid grid-cols-2 gap-3">
+                        <div>
+                            <label class="block text-xs text-gray-400 font-medium mb-1">Entry Price (Opt.)</label>
+                            <input type="number" step="any" id="tradeEntry" placeholder="1.0850"
+                                class="w-full px-3 py-2 bg-gray-900 border border-gray-800 rounded-xl text-xs text-white placeholder-gray-600 focus:outline-none focus:border-blue-500 transition">
+                        </div>
+                        <div>
+                            <label class="block text-xs text-gray-400 font-medium mb-1">Exit Price (Opt.)</label>
+                            <input type="number" step="any" id="tradeExit" placeholder="1.0930"
+                                class="w-full px-3 py-2 bg-gray-900 border border-gray-800 rounded-xl text-xs text-white placeholder-gray-600 focus:outline-none focus:border-blue-500 transition">
+                        </div>
+                    </div>
+
+                    <div>
+                        <label class="block text-xs text-gray-400 font-medium mb-1">Confluence / Notes</label>
+                        <textarea id="tradeNotes" rows="2" placeholder="4H support bounce, clean 1:4 RR setup..."
+                            class="w-full px-3 py-2 bg-gray-900 border border-gray-800 rounded-xl text-xs text-white placeholder-gray-600 focus:outline-none focus:border-blue-500 transition resize-none"></textarea>
+                    </div>
+
+                    <button type="submit" class="w-full py-2.5 px-4 rounded-xl bg-gradient-to-r from-blue-600 to-blue-500 hover:from-blue-500 hover:to-blue-400 active:scale-[0.99] text-white font-semibold text-xs shadow-lg shadow-blue-600/30 transition flex items-center justify-center gap-2">
+                        <i class="fa-solid fa-plus"></i> Record Trade Execution
+                    </button>
+                </form>
+            </div>
+
+            <!-- History Logs (Responsive Desktop Table / Mobile Cards) -->
+            <div class="lg:col-span-2 glass-card rounded-2xl p-4 sm:p-5 flex flex-col justify-between">
+                <div>
+                    <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 mb-4">
+                        <div>
+                            <h2 class="text-base font-bold text-white flex items-center gap-2">
+                                <i class="fa-solid fa-clock-rotate-left text-blue-400"></i> Trade History Log
+                            </h2>
+                            <p class="text-xs text-gray-400" id="recordCount">0 Recorded Trades</p>
+                        </div>
+                        
+                        <!-- Table Filters & Actions -->
+                        <div class="flex items-center gap-2 w-full sm:w-auto justify-between sm:justify-end">
+                            <div class="flex items-center gap-1 bg-gray-900 p-1 rounded-xl border border-gray-800 text-xs">
+                                <button id="filterAll" class="filter-btn px-3 py-1 rounded-lg font-medium text-white bg-blue-600 transition">All</button>
+                                <button id="filterWins" class="filter-btn px-3 py-1 rounded-lg font-medium text-gray-400 hover:text-white transition">Wins</button>
+                                <button id="filterLosses" class="filter-btn px-3 py-1 rounded-lg font-medium text-gray-400 hover:text-white transition">Losses</button>
+                            </div>
+                            <button id="exportCsvBtn" class="px-2.5 py-1 text-xs text-gray-400 hover:text-white bg-gray-900 hover:bg-gray-800 border border-gray-800 rounded-lg transition" title="Export to CSV">
+                                <i class="fa-solid fa-download"></i>
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- Desktop Table View -->
+                    <div class="hidden md:block overflow-x-auto rounded-xl border border-gray-800">
+                        <table class="w-full text-left text-xs">
+                            <thead class="bg-gray-900/90 text-gray-400 border-b border-gray-800 uppercase font-semibold">
+                                <tr>
+                                    <th class="py-3 px-3">#</th>
+                                    <th class="py-3 px-3">Pair</th>
+                                    <th class="py-3 px-3">Dir</th>
+                                    <th class="py-3 px-3">Outcome</th>
+                                    <th class="py-3 px-3">Risked</th>
+                                    <th class="py-3 px-3">Profit/Loss</th>
+                                    <th class="py-3 px-3">Balance</th>
+                                    <th class="py-3 px-3 text-right">Action</th>
+                                </tr>
+                            </thead>
+                            <tbody id="tradeHistoryBody" class="divide-y divide-gray-800/60 text-gray-300">
+                                <!-- Dynamic Rows -->
+                            </tbody>
+                        </table>
+                    </div>
+
+                    <!-- Mobile Card View -->
+                    <div id="mobileTradeCards" class="md:hidden space-y-3">
+                        <!-- Dynamic Mobile Cards -->
+                    </div>
+
+                    <!-- Empty State Placeholder -->
+                    <div id="emptyState" class="py-12 text-center text-gray-500 hidden">
+                        <i class="fa-solid fa-folder-open text-3xl mb-2 text-gray-600"></i>
+                        <p class="text-xs">No trades logged yet. Start by logging your first trade above!</p>
+                    </div>
+                </div>
+
+                <!-- Footer Sync Status Indicator -->
+                <div class="mt-4 pt-3 border-t border-gray-800 flex justify-between items-center text-xs text-gray-400">
+                    <span>Compounding: <span class="text-amber-400 font-medium">2x Risk on Win</span></span>
+                    <span id="syncStatus" class="text-blue-400 font-medium flex items-center gap-1.5">
+                        <i class="fa-solid fa-hard-drive"></i> Local Storage Mode
+                    </span>
+                </div>
+            </div>
+
+        </div>
+
+        <!-- Strategy Rules Reference Card -->
+        <div class="glass-card rounded-2xl p-4 sm:p-5 border-l-4 border-l-blue-500">
+            <h3 class="text-sm font-bold text-white mb-2 flex items-center gap-2">
+                <i class="fa-solid fa-book-bookmark text-blue-400"></i> Execution Rules & Risk Rules
+            </h3>
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-3 text-xs text-gray-400">
+                <div class="bg-gray-900/60 p-3 rounded-xl border border-gray-800">
+                    <span class="font-bold text-blue-400 block mb-1">1. Fixed Risk-to-Reward (1:4)</span>
+                    Always target a 1:4 RR payout. On a $2 risk trade, winning adds +$8 profit.
+                </div>
+                <div class="bg-gray-900/60 p-3 rounded-xl border border-gray-800">
+                    <span class="font-bold text-amber-400 block mb-1">2. Win-Streak Escalation</span>
+                    Risk starts at $2. Winning doubles the next trade risk ($2 $\rightarrow$ $4 $\rightarrow$ $8 $\rightarrow$ $16). 4 wins hits $130!
+                </div>
+                <div class="bg-gray-900/60 p-3 rounded-xl border border-gray-800">
+                    <span class="font-bold text-emerald-400 block mb-1">3. Loss Reset Defense</span>
+                    Any single trade loss resets the next trade risk back to the base $2.00. Accrued profits are protected.
+                </div>
+            </div>
+        </div>
+
+    </main>
+
+    <!-- App Footer -->
+    <footer class="mt-8 text-center text-xs text-gray-500 border-t border-gray-800/80 pt-6">
+        <p>$10 to $100 Dynamic Risk Trading Challenge Manager • Multi-Device Sync Ready</p>
+    </footer>
+
+    <!-- JavaScript Logic -->
+    <script>
+        // App Constants & Storage Identifiers
+        const STORAGE_KEY = 'challenge_trades_v2';
+        const INITIAL_BALANCE = 10.00;
+        const BASE_RISK = 2.00;
+        const RR_RATIO = 4;
+        const APP_ID = typeof __app_id !== 'undefined' ? __app_id : 'trading-challenge-10to100';
+
+        // Firebase State Variables
+        let auth = null;
+        let db = null;
+        let currentUser = null;
+
+        // Try initializing Firebase safely if environment provides config
+        if (typeof __firebase_config !== 'undefined' && __firebase_config) {
+            try {
+                const firebaseConfig = JSON.parse(__firebase_config);
+                firebase.initializeApp(firebaseConfig);
+                auth = firebase.auth();
+                db = firebase.firestore();
+            } catch(e) {
+                console.warn('Firebase setup notice: Defaulting to local storage execution.', e);
+            }
+        }
+
+        // Global State Variables
+        let trades = [];
+        let currentFilter = 'ALL';
+        let balanceChartInstance = null;
+        let simChartInstance = null;
+
+        // Window Load Event Handler
+        window.onload = function() {
+            initFirebase();
+            loadTradesFromStorage();
+            initCharts();
+            updateDashboard();
+            setupEventListeners();
+        };
+
+        // Firebase Auth Init
+        function initFirebase() {
+            if (!auth) return;
+
+            if (typeof __initial_auth_token !== 'undefined' && __initial_auth_token) {
+                auth.signInWithCustomToken(__initial_auth_token).catch(() => {
+                    auth.signInAnonymously().catch(console.error);
+                });
+            }
+
+            auth.onAuthStateChanged(async (user) => {
+                const googleLoginBtn = document.getElementById('googleLoginBtn');
+                const userProfile = document.getElementById('userProfile');
+                const syncStatus = document.getElementById('syncStatus');
+
+                if (user && !user.isAnonymous) {
+                    currentUser = user;
+                    googleLoginBtn.classList.add('hidden');
+                    userProfile.classList.remove('hidden');
+                    userProfile.classList.add('flex');
+                    document.getElementById('userName').textContent = user.displayName || 'Trader';
+                    document.getElementById('userAvatar').src = user.photoURL || 'https://placehold.co/40x40/1f2937/ffffff?text=U';
+                    syncStatus.innerHTML = `<i class="fa-solid fa-cloud-arrow-up text-emerald-400"></i> Cloud Synced`;
+
+                    await loadTradesFromFirestore(user.uid);
+                } else {
+                    currentUser = null;
+                    googleLoginBtn.classList.remove('hidden');
+                    userProfile.classList.add('hidden');
+                    userProfile.classList.remove('flex');
+                    syncStatus.innerHTML = `<i class="fa-solid fa-hard-drive"></i> Local Storage Mode`;
+                    loadTradesFromStorage();
+                }
+
+                updateDashboard();
+            });
+        }
+
+        // Google Authentication Triggers
+        function loginWithGoogle() {
+            if (!auth) {
+                alert('Firebase Auth is not available in standalone preview mode. Local storage is currently active.');
+                return;
+            }
+            const provider = new firebase.auth.GoogleAuthProvider();
+            auth.signInWithPopup(provider).catch(err => {
+                console.error("Google Auth Error:", err);
+            });
+        }
+
+        function logoutUser() {
+            if (auth) {
+                auth.signOut();
+            }
+        }
+
+        // Firestore Database Interactions
+        async function saveTradesToFirestore(userId) {
+            if (!db || !userId) return;
+            try {
+                // RULE 1 Pathing: /artifacts/{appId}/users/{userId}/data/challenge_log
+                const userDocRef = db.collection('artifacts').doc(APP_ID).collection('users').doc(userId).collection('data').doc('challenge_log');
+                await userDocRef.set({
+                    trades: trades,
+                    updatedAt: firebase.firestore.FieldValue.serverTimestamp()
+                });
+            } catch (error) {
+                console.error("Firestore Write Error:", error);
+            }
+        }
+
+        async function loadTradesFromFirestore(userId) {
+            if (!db || !userId) return;
+            try {
+                const userDocRef = db.collection('artifacts').doc(APP_ID).collection('users').doc(userId).collection('data').doc('challenge_log');
+                const docSnap = await userDocRef.get();
+                if (docSnap.exists && docSnap.data().trades) {
+                    trades = docSnap.data().trades;
+                } else {
+                    if (trades.length > 0) {
+                        await saveTradesToFirestore(userId);
+                    }
+                }
+            } catch (error) {
+                console.error("Firestore Read Error:", error);
+            }
+        }
+
+        function saveTrades() {
+            localStorage.setItem(STORAGE_KEY, JSON.stringify(trades));
+            if (currentUser) {
+                saveTradesToFirestore(currentUser.uid);
+            }
+        }
+
+        function loadTradesFromStorage() {
+            const stored = localStorage.getItem(STORAGE_KEY);
+            if (stored) {
+                try {
+                    trades = JSON.parse(stored);
+                } catch(e) {
+                    trades = [];
+                }
+            } else {
+                trades = [];
+            }
+        }
+
+        // Calculate account stats from trade history
+        function calculateState() {
+            let balance = INITIAL_BALANCE;
+            let currentStreak = 0;
+            let maxStreak = 0;
+            let wins = 0;
+            let losses = 0;
+            let nextRisk = BASE_RISK;
+
+            trades.forEach(t => {
+                if (t.outcome === 'WIN') {
+                    balance += t.pnl;
+                    currentStreak++;
+                    if (currentStreak > maxStreak) maxStreak = currentStreak;
+                    wins++;
+                    nextRisk = t.risk * 2;
+                } else {
+                    balance += t.pnl;
+                    currentStreak = 0;
+                    losses++;
+                    nextRisk = BASE_RISK;
+                }
+            });
+
+            if (balance <= 0) {
+                balance = 0;
+                nextRisk = 0;
+            }
+
+            return {
+                balance: balance,
+                currentStreak: currentStreak,
+                maxStreak: maxStreak,
+                wins: wins,
+                losses: losses,
+                totalTrades: trades.length,
+                nextRisk: nextRisk,
+                netPnL: balance - INITIAL_BALANCE
+            };
+        }
+
+        // Chart Initialization (Chart.js)
+        function initCharts() {
+            // 1. Balance History Line Chart
+            const ctxBalance = document.getElementById('balanceChart').getContext('2d');
+            balanceChartInstance = new Chart(ctxBalance, {
+                type: 'line',
+                data: {
+                    labels: ['Start'],
+                    datasets: [{
+                        label: 'Account Balance ($)',
+                        data: [INITIAL_BALANCE],
+                        borderColor: '#3b82f6',
+                        backgroundColor: 'rgba(59, 130, 246, 0.1)',
+                        borderWidth: 2.5,
+                        fill: true,
+                        tension: 0.3,
+                        pointRadius: 4,
+                        pointHoverRadius: 6,
+                        pointBackgroundColor: '#3b82f6'
+                    }, {
+                        label: 'Target ($100)',
+                        data: [100],
+                        borderColor: 'rgba(239, 68, 68, 0.4)',
+                        borderDash: [5, 5],
+                        borderWidth: 1.5,
+                        fill: false,
+                        pointRadius: 0
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: { display: false },
+                        tooltip: {
+                            callbacks: {
+                                label: (ctx) => ` Balance: $${ctx.raw.toFixed(2)}`
+                            }
+                        }
+                    },
+                    scales: {
+                        x: {
+                            grid: { color: 'rgba(255, 255, 255, 0.05)' },
+                            ticks: { color: '#9ca3af', font: { size: 10 } }
+                        },
+                        y: {
+                            grid: { color: 'rgba(255, 255, 255, 0.05)' },
+                            ticks: {
+                                color: '#9ca3af',
+                                font: { size: 10 },
+                                callback: (val) => `$${val}`
+                            }
+                        }
+                    }
+                }
+            });
+
+            // 2. Simulator Comparison Chart
+            const ctxSim = document.getElementById('simChart').getContext('2d');
+            simChartInstance = new Chart(ctxSim, {
+                type: 'line',
+                data: {
+                    labels: ['T0', 'T1', 'T2', 'T3', 'T4'],
+                    datasets: [{
+                        label: 'Compounded (2x)',
+                        data: [10, 18, 34, 66, 130],
+                        borderColor: '#10B981',
+                        borderWidth: 2,
+                        tension: 0.2,
+                        pointRadius: 3
+                    }, {
+                        label: 'Static Risk ($2)',
+                        data: [10, 18, 26, 34, 42],
+                        borderColor: '#9CA3AF',
+                        borderWidth: 1.5,
+                        borderDash: [3, 3],
+                        tension: 0.2,
+                        pointRadius: 2
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: { legend: { display: false } },
+                    scales: {
+                        x: { display: false },
+                        y: { display: false }
+                    }
+                }
+            });
+        }
+
+        // Update Real-Time Balance Chart
+        function updateChart() {
+            if (!balanceChartInstance) return;
+
+            const labels = ['Start'];
+            const dataPoints = [INITIAL_BALANCE];
+            let tempBal = INITIAL_BALANCE;
+
+            trades.forEach((t, i) => {
+                tempBal += t.pnl;
+                labels.push(`T${i + 1}`);
+                dataPoints.push(tempBal);
+            });
+
+            // Maintain target line data array matching labels length
+            const targetLineData = new Array(labels.length).fill(100);
+
+            balanceChartInstance.data.labels = labels;
+            balanceChartInstance.data.datasets[0].data = dataPoints;
+            balanceChartInstance.data.datasets[1].data = targetLineData;
+            balanceChartInstance.update();
+        }
+
+        // Update Strategy Simulator Projections
+        function runSimulator() {
+            const initial = parseFloat(document.getElementById('simInitial').value);
+            const baseRisk = parseFloat(document.getElementById('simBaseRisk').value);
+            const rr = parseFloat(document.getElementById('simRR').value);
+            const streak = parseInt(document.getElementById('simStreak').value);
+
+            document.getElementById('simInitialVal').textContent = `$${initial}`;
+            document.getElementById('simBaseRiskVal').textContent = `$${baseRisk}`;
+            document.getElementById('simRRVal').textContent = `1:${rr}`;
+            document.getElementById('simStreakVal').textContent = `${streak} Wins`;
+
+            const labels = ['Start'];
+            const dynamicPoints = [initial];
+            const staticPoints = [initial];
+
+            let curDynamic = initial;
+            let curStatic = initial;
+            let curRisk = baseRisk;
+
+            for (let i = 1; i <= streak; i++) {
+                labels.push(`W${i}`);
+                
+                // Dynamic 2x risk calculation
+                const dynGain = curRisk * rr;
+                curDynamic += dynGain;
+                dynamicPoints.push(curDynamic);
+                curRisk *= 2;
+
+                // Static fixed risk calculation
+                const statGain = baseRisk * rr;
+                curStatic += statGain;
+                staticPoints.push(curStatic);
+            }
+
+            document.getElementById('simDynamicResult').textContent = `$${curDynamic.toFixed(2)}`;
+            document.getElementById('simStaticResult').textContent = `$${curStatic.toFixed(2)}`;
+
+            if (simChartInstance) {
+                simChartInstance.data.labels = labels;
+                simChartInstance.data.datasets[0].data = dynamicPoints;
+                simChartInstance.data.datasets[1].data = staticPoints;
+                simChartInstance.update();
+            }
+        }
+
+        // Update Dashboard UI Elements
+        function updateDashboard() {
+            const state = calculateState();
+
+            document.getElementById('statBalance').textContent = `$${state.balance.toFixed(2)}`;
+            const pnlPct = ((state.balance - INITIAL_BALANCE) / INITIAL_BALANCE) * 100;
+            const balancePctElem = document.getElementById('statBalancePct');
+            balancePctElem.className = `text-xs font-medium mt-1 flex items-center gap-1 ${pnlPct >= 0 ? 'text-emerald-400' : 'text-red-400'}`;
+            balancePctElem.innerHTML = `<i class="fa-solid ${pnlPct >= 0 ? 'fa-caret-up' : 'fa-caret-down'}"></i> ${pnlPct >= 0 ? '+' : ''}${pnlPct.toFixed(1)}%`;
+
+            document.getElementById('statNextRisk').textContent = `$${state.nextRisk.toFixed(2)}`;
+            const riskPct = state.balance > 0 ? ((state.nextRisk / state.balance) * 100).toFixed(1) : 0;
+            document.getElementById('statNextRiskPct').textContent = `${riskPct}% of Capital`;
+            document.getElementById('tradeRiskAmount').value = state.nextRisk.toFixed(2);
+
+            document.getElementById('statStreak').textContent = state.currentStreak;
+            document.getElementById('statMaxStreak').textContent = `Best: ${state.maxStreak} Wins`;
+            
+            const pnlElem = document.getElementById('statPnL');
+            pnlElem.textContent = `${state.netPnL >= 0 ? '+' : ''}$${state.netPnL.toFixed(2)}`;
+            pnlElem.className = `text-xl sm:text-2xl font-extrabold ${state.netPnL >= 0 ? 'text-emerald-400' : 'text-red-400'}`;
+
+            const winRate = state.totalTrades > 0 ? ((state.wins / state.totalTrades) * 100).toFixed(0) : 0;
+            document.getElementById('statWinRate').textContent = `Win Rate: ${winRate}%`;
+
+            const targetPct = Math.min(100, Math.max(0, (state.balance / 100) * 100));
+            document.getElementById('statTargetPct').textContent = `${targetPct.toFixed(1)}%`;
+            document.getElementById('targetProgressBar').style.width = `${targetPct}%`;
+
+            document.getElementById('statTotalTrades').textContent = state.totalTrades;
+            document.getElementById('statWinsLosses').textContent = `${state.wins} W / ${state.losses} L`;
+            document.getElementById('recordCount').textContent = `${state.totalTrades} Recorded Trades`;
+
+            renderHistoryLogs();
+            updateChart();
+        }
+
+        // Render History Logs (Handles both Desktop Table and Mobile Cards)
+        function renderHistoryLogs() {
+            const tbody = document.getElementById('tradeHistoryBody');
+            const mobileCardsContainer = document.getElementById('mobileTradeCards');
+            const emptyState = document.getElementById('emptyState');
+
+            tbody.innerHTML = '';
+            mobileCardsContainer.innerHTML = '';
+
+            let filteredTrades = trades;
+            if (currentFilter === 'WINS') {
+                filteredTrades = trades.filter(t => t.outcome === 'WIN');
+            } else if (currentFilter === 'LOSSES') {
+                filteredTrades = trades.filter(t => t.outcome === 'LOSS');
+            }
+
+            if (filteredTrades.length === 0) {
+                emptyState.classList.remove('hidden');
+                return;
+            } else {
+                emptyState.classList.add('hidden');
+            }
+
+            [...filteredTrades].reverse().forEach((trade) => {
+                const isWin = trade.outcome === 'WIN';
+                const pnlClass = isWin ? 'text-emerald-400 font-semibold' : 'text-red-400 font-semibold';
+                const outcomeBadge = isWin 
+                    ? '<span class="px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">WIN +1:4</span>'
+                    : '<span class="px-2 py-0.5 rounded-full text-[10px] font-bold bg-red-500/10 text-red-400 border border-red-500/20">LOSS -1R</span>';
+
+                // 1. Desktop Row
+                const tr = document.createElement('tr');
+                tr.className = 'hover:bg-gray-800/40 transition border-b border-gray-800/50';
+                tr.innerHTML = `
+                    <td class="py-3 px-3 font-medium text-gray-400">#${trade.id}</td>
+                    <td class="py-3 px-3 font-semibold text-white">${escapeHtml(trade.pair)}</td>
+                    <td class="py-3 px-3">
+                        <span class="text-[11px] font-bold ${trade.direction === 'LONG' ? 'text-emerald-400' : 'text-red-400'}">
+                            ${trade.direction}
+                        </span>
+                    </td>
+                    <td class="py-3 px-3">${outcomeBadge}</td>
+                    <td class="py-3 px-3 text-amber-400 font-medium">$${trade.risk.toFixed(2)}</td>
+                    <td class="py-3 px-3 ${pnlClass}">${isWin ? '+' : ''}$${trade.pnl.toFixed(2)}</td>
+                    <td class="py-3 px-3 font-bold text-white">$${trade.balanceAfter.toFixed(2)}</td>
+                    <td class="py-3 px-3 text-right">
+                        <button onclick="deleteTrade(${trade.id})" class="text-gray-500 hover:text-red-400 transition px-2 py-1" title="Delete Trade">
+                            <i class="fa-solid fa-trash-can"></i>
+                        </button>
+                    </td>
+                `;
+                tbody.appendChild(tr);
+
+                // 2. Mobile Card
+                const card = document.createElement('div');
+                card.className = 'bg-gray-900/80 rounded-xl p-3 border border-gray-800 space-y-2';
+                card.innerHTML = `
+                    <div class="flex justify-between items-center">
+                        <div class="flex items-center gap-2">
+                            <span class="text-xs font-bold text-gray-400">#${trade.id}</span>
+                            <span class="text-sm font-bold text-white">${escapeHtml(trade.pair)}</span>
+                            <span class="text-[10px] font-bold ${trade.direction === 'LONG' ? 'text-emerald-400' : 'text-red-400'}">${trade.direction}</span>
+                        </div>
+                        <div class="flex items-center gap-2">
+                            ${outcomeBadge}
+                            <button onclick="deleteTrade(${trade.id})" class="text-gray-500 hover:text-red-400 text-xs p-1">
+                                <i class="fa-solid fa-trash-can"></i>
+                            </button>
+                        </div>
+                    </div>
+                    <div class="grid grid-cols-3 gap-2 text-xs pt-1 border-t border-gray-800/60">
+                        <div>
+                            <span class="text-gray-500 block text-[10px]">Risk</span>
+                            <span class="text-amber-400 font-semibold">$${trade.risk.toFixed(2)}</span>
+                        </div>
+                        <div>
+                            <span class="text-gray-500 block text-[10px]">P&L</span>
+                            <span class="${pnlClass}">${isWin ? '+' : ''}$${trade.pnl.toFixed(2)}</span>
+                        </div>
+                        <div class="text-right">
+                            <span class="text-gray-500 block text-[10px]">Balance</span>
+                            <span class="text-white font-bold">$${trade.balanceAfter.toFixed(2)}</span>
+                        </div>
+                    </div>
+                `;
+                mobileCardsContainer.appendChild(card);
+            });
+        }
+
+        // Add New Trade Handler
+        function handleAddTrade(e) {
+            e.preventDefault();
+
+            const pair = document.getElementById('tradePair').value.trim() || 'EUR/USD';
+            const direction = document.getElementById('tradeDirection').value;
+            const outcome = document.getElementById('tradeOutcome').value;
+            const entry = document.getElementById('tradeEntry').value;
+            const exit = document.getElementById('tradeExit').value;
+            const notes = document.getElementById('tradeNotes').value.trim();
+
+            const state = calculateState();
+            const risk = state.nextRisk;
+
+            let pnl = outcome === 'WIN' ? (risk * RR_RATIO) : (-risk);
+            const balanceAfter = state.balance + pnl;
+
+            const newTrade = {
+                id: trades.length + 1,
+                pair: pair.toUpperCase(),
+                direction: direction,
+                outcome: outcome,
+                risk: risk,
+                pnl: pnl,
+                balanceAfter: balanceAfter,
+                entry: entry,
+                exit: exit,
+                notes: notes,
+                timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+            };
+
+            trades.push(newTrade);
+            saveTrades();
+            updateDashboard();
+
+            document.getElementById('tradePair').value = '';
+            document.getElementById('tradeEntry').value = '';
+            document.getElementById('tradeExit').value = '';
+            document.getElementById('tradeNotes').value = '';
+        }
+
+        // Delete Single Trade
+        window.deleteTrade = function(id) {
+            trades = trades.filter(t => t.id !== id);
+            
+            let runningBalance = INITIAL_BALANCE;
+            let nextRisk = BASE_RISK;
+
+            trades.forEach((t, idx) => {
+                t.id = idx + 1;
+                t.risk = nextRisk;
+                if (t.outcome === 'WIN') {
+                    t.pnl = t.risk * RR_RATIO;
+                    runningBalance += t.pnl;
+                    nextRisk = t.risk * 2;
+                } else {
+                    t.pnl = -t.risk;
+                    runningBalance += t.pnl;
+                    nextRisk = BASE_RISK;
+                }
+                t.balanceAfter = runningBalance;
+            });
+
+            saveTrades();
+            updateDashboard();
+        };
+
+        // Export Logged Trades to CSV
+        function exportToCsv() {
+            if (trades.length === 0) {
+                alert('No trades available to export.');
+                return;
+            }
+
+            let csvContent = "data:text/csv;charset=utf-8,";
+            csvContent += "Trade_ID,Pair,Direction,Outcome,Risk_USD,PnL_USD,Balance_After,Timestamp\n";
+
+            trades.forEach(t => {
+                csvContent += `${t.id},${t.pair},${t.direction},${t.outcome},${t.risk.toFixed(2)},${t.pnl.toFixed(2)},${t.balanceAfter.toFixed(2)},${t.timestamp}\n`;
+            });
+
+            const encodedUri = encodeURI(csvContent);
+            const link = document.createElement("a");
+            link.setAttribute("href", encodedUri);
+            link.setAttribute("download", `trading_challenge_log_${new Date().toISOString().slice(0,10)}.csv`);
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+        }
+
+        // Setup DOM Events
+        function setupEventListeners() {
+            document.getElementById('googleLoginBtn').addEventListener('click', loginWithGoogle);
+            document.getElementById('logoutBtn').addEventListener('click', logoutUser);
+            document.getElementById('tradeForm').addEventListener('submit', handleAddTrade);
+
+            ['simInitial', 'simBaseRisk', 'simRR', 'simStreak'].forEach(id => {
+                document.getElementById(id).addEventListener('input', runSimulator);
+            });
+
+            document.getElementById('filterAll').addEventListener('click', (e) => setFilter('ALL', e.target));
+            document.getElementById('filterWins').addEventListener('click', (e) => setFilter('WINS', e.target));
+            document.getElementById('filterLosses').addEventListener('click', (e) => setFilter('LOSSES', e.target));
+
+            document.getElementById('exportCsvBtn').addEventListener('click', exportToCsv);
+
+            document.getElementById('resetDataBtn').addEventListener('click', () => {
+                if (confirm('Are you sure you want to reset your trading challenge history?')) {
+                    trades = [];
+                    saveTrades();
+                    updateDashboard();
+                }
+            });
+
+            document.getElementById('addPresetStreakBtn').addEventListener('click', () => {
+                trades = [];
+                const samplePairs = ['EUR/USD', 'XAU/USD', 'GBP/JPY', 'BTC/USD'];
+                let currentRisk = BASE_RISK;
+                let balance = INITIAL_BALANCE;
+
+                for (let i = 0; i < 4; i++) {
+                    const pnl = currentRisk * RR_RATIO;
+                    balance += pnl;
+                    trades.push({
+                        id: i + 1,
+                        pair: samplePairs[i],
+                        direction: 'LONG',
+                        outcome: 'WIN',
+                        risk: currentRisk,
+                        pnl: pnl,
+                        balanceAfter: balance,
+                        notes: `Preset Win Streak #${i+1}`,
+                        timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+                    });
+                    currentRisk *= 2;
+                }
+
+                saveTrades();
+                updateDashboard();
+            });
+
+            runSimulator();
+        }
+
+        function setFilter(filterType, buttonElem) {
+            currentFilter = filterType;
+            document.querySelectorAll('.filter-btn').forEach(btn => {
+                btn.className = 'filter-btn px-3 py-1 rounded-lg font-medium text-gray-400 hover:text-white transition';
+            });
+            buttonElem.className = 'filter-btn px-3 py-1 rounded-lg font-medium text-white bg-blue-600 transition';
+            renderHistoryLogs();
+        }
+
+        function escapeHtml(text) {
+            return text.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+        }
+    </script>
+</body>
+</html>
